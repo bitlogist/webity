@@ -1,0 +1,35 @@
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "tsc": "^2.0.4",
+    "typescript": "^5.0.4"
+  },
+  "name": "webity",
+  "description": "Advanced Web SSR!",
+  "version": "1.0.0",
+  "main": "dist/esm/index.mjs",
+  "type": "module",
+  "exports": {
+    "import": "./dist/esm/index.mjs",
+    "require": "./dist/cjs/index.cjs"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.esm.json & tsc --project tsconfig.cjs.json\nnode build.node.js",
+    "dev": "node index.test.mjs"
+  },
+  "keywords": [],
+  "author": "bitlogist",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.1.0"
+  },
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "*.test.*",
+    "*.node.*"
+  ]
+}
