@@ -14,6 +14,7 @@ class Component {
 type DynamicHTML = {
   html: string,
   component?: Component,
+  scriptList?: string[],
 }
 
 function modify(script: string, html: string) {
@@ -62,15 +63,35 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
   let component: Component = new Component(false)
   let imports: Record<string, any> = {}
   let document = parse(html)
+  let scriptList: string[] = []
   const lib = {
     $import: (file: string) => {
       const dynamic = render(dir, file, locals, debug)
+      if (debug) console.log(dynamic)
+      if (!dynamic.scriptList || !dynamic.component) return false
+      const dom = parse(dynamic.html)
+      const importedTemplate = dom.querySelector('template')?.innerHTML
+      const slot = dom.querySelector('slot')?.toString() || ''
       imports[file] = dynamic.component
-      const element = document.querySelector(file.replace(/\..*/g, '').toLowerCase())
-      if (element) {
-        html = html.replace(element.toString(), dynamic.html.replace('<slot/>', element.innerHTML))
-        document = parse(html)
+      const root = document.querySelector('#root')
+      const template = document.querySelector('template')
+      const elements = document.querySelectorAll('template ' + file.replace(/\..*/g, '').toLowerCase())
+      if (debug) console.log(`LOADING! \x1b[34m${file}\xb1[0m components -> \x1b[34m${elements.length}\x1b[0m`)
+      for (const element of elements) {
+        if (template && importedTemplate) {
+          template.innerHTML = template.innerHTML.replace(element.toString(), importedTemplate.replace(slot.toString(), element.innerHTML))
+        } else if (debug) console.log('WARNING! \x1b[33mtemplate tags missing\x1b[0m')
       }
+      if (root && template) html = html.replace(root.toString(), template.innerHTML)
+      document = parse(html)
+      const firstScript = document.querySelector('script[webity]')?.toString() || ''
+      let s = firstScript
+      for (const script of dynamic.scriptList) {
+        s = script + s
+      }
+      if (debug) console.log(s)
+      html = html.replace(firstScript, s)
+      if (debug) console.log(html)
       return dynamic.component
     },
     $export: (item: any) => component = item,
@@ -84,6 +105,7 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
     } catch(e) {
       console.log(e)
     }
+    scriptList.push(modify(script.toString(), script.toString()))
     html = modify(script.toString(), html)
   })
   const matches = Array.from(html.matchAll(/%{(.|\n)+?}%/g))
@@ -109,6 +131,7 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
   return {
     html,
     component,
+    scriptList,
   }
 }
 

@@ -8,49 +8,84 @@ A pretty overpowered SSR engine for express!
 npm install webity
 ```
 
-## SSR
+## Getting Started
 
-The SSR engine supports pure HTML. There is no need to use other file extensions or syntax highlighters!
+Webity is a hybrid typescript library. It supports `import` and `require` statements.
+
+### ESM
+
+```js
+import { render, Router } from 'webity'
+import express from 'express'
+```
+
+### CJS
+
+```js
+const { render, Router } = require('webity')
+const express = require('express')
+```
+
+The `Router` wrapper class creates a webity router on top of an `Express` applicaiton. The router automatically renders pages according to the route.
+
+```js
+const app = express()
+const router = new Router(app)
+```
+
+## Overview
+
+The Webity SSR engine supports pure HTML. There is no need to use other file extensions or syntax highlighters!
 
 ### Server Variables
 
 Variables can be rendered by the server and sent as HTML files.
 
 ```js
-import { render, Router } from './dist/esm/index.mjs'
-import express from 'express'
+const { render, Router } = require('./dist/cjs/index.cjs')
+const express = require('express')
 
 const app = express()
-const router = new Router(app) // same as new Router(app, 'views')
+const router = new Router(app)
 
 router.use(express.static('public'))
 
-router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] }) // app.get('/') and renders views/index.html
+router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] })
 
-router.listen(3000) // you can always access router.app if you need to
+router.listen(3000)
 ```
+
+Anything inside `%{}%` brackets is rendered by the server.
+> **Warning** Using regular expressions or single-line `//` comments  is not recommended
 
 ### Components
 
 Any `script` tag to do with components needs a **webity** attribute.
 
-Components are more advanced and are designed to work with the client. The server configures components before they are shipped to the client. The `$import(file)` function imports a component from another HTML file. The first HTML tag with the same name as the component's file name (due to `querySelector`) will be replaced with the component's HTML. For example, the `$import('page')` function in the **webity** script of `index.html` will read `page.html` in the same directory and replace the first `<page></page>` in `index.html` with the contents of `page.html`. Anything inside the `<page></page>` element will replace the `<slot/>` of `page.html` if it has a slot. 
+Components are more advanced and are designed to work with the client. The server configures components before they are shipped to the client. The `$import(file)` function imports a component from another HTML file. The first HTML tag with the same name as the component's file name (due to `querySelector`) will be replaced with the component's HTML. For example, the `$import('page')` function in the **webity** script of `index.html` will read `page.html` in the same directory and replace all `<page></page>` elements in `index.html` with the template of `page.html`. Anything inside the `<page></page>` elements will replace the `<slot/>` of `page.html` if it has a slot. 
 
 ```html
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- views/meta.html is rendered -->
   %{ include('$meta.html') }%
   <title>%{ message }%</title>
   %main%
 </head>
 <body>
-  <!-- $import('page') replaces the page tag with the component -->
-  <page>
-    <!-- innerHTML replaces <slot/> -->
-    Hello!
-  </page>
+  <div id="root">
+    <!-- rendered content will go in #root -->
+  </div>
+  <template>
+    <page>
+      Hello
+    </page>
+    <page>
+      World
+    </page>
+  </template>
   <script webity>
     const Page = $import('page')
     const page = new Page()
@@ -64,10 +99,16 @@ The `page.html` file contains the definitions for the exported component. Reacti
 
 ```html
 <!-- page.html -->
-<!-- innerHTML of <page></page> replaces the slot -->
-<slot/>
-<!-- JavaScript renders HTML -->
-%{ loop(todo, item => element('li', item, {})) }%
+<template>
+  <slot>
+    <!-- slots will be replaced with the innerHTML of a <page></page> element -->
+  </slot>
+  <!-- SSR renders <li></li> elements -->
+  <ul>
+    %{ loop(todo, item => element('li', item, {})) }%
+  </ul>
+</template>
+<!-- webity scripts are rendered -->
 <script webity>
   class Page extends Component {
     constructor() {
@@ -80,4 +121,13 @@ The `page.html` file contains the definitions for the exported component. Reacti
   }
   $export(Page)
 </script>
+```
+
+The `include(file)` function can render other pages in a file.
+
+```html
+<!-- meta.html -->
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 ```

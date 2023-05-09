@@ -1,11 +1,11 @@
-const { render } = require('./dist/cjs/index.cjs')
+const { render, Router } = require('./dist/cjs/index.cjs')
 const express = require('express')
+
 const app = express()
+const router = new Router(app)
 
-app.use(express.static('public'))
+router.use(express.static('public'))
 
-app.get('/', async (req, res) => {
-  res.send(render('views', '', { message: 'Hello!', todo: ['Eat', 'Code'] })) // views/index.html is rendered
-})
+router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] })
 
-app.listen(3000)
+router.listen(3000)
