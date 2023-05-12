@@ -5,10 +5,7 @@ import { parse } from 'node-html-parser'
 type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
 
 class Component {
-  slot: boolean
-  constructor(slot: boolean | undefined) {
-    this.slot = slot ? slot : false
-  }
+  constructor() {}
 }
 
 type DynamicHTML = {
@@ -17,13 +14,16 @@ type DynamicHTML = {
   scriptList?: string[],
 }
 
+const root = '$'
+const maxLength = 32
+
 function modify(script: string, html: string) {
   html = html.replace(script, script.replace(/return (.|\n)*/g, ''))
   html = html.replace(script, script.replace(/(var|const|let) \w+[ ]*=[ ]*\$import\(("|'|`).+("|'|`)\);*/g, ''))
   return html
 }
 
-function execute(code: string, locals: Record<string, any>, dir: string) {
+function execute(code: string, locals: Record<string, any>, dir: string): string {
   try {
     const preset = {
       process: {
@@ -43,7 +43,7 @@ function execute(code: string, locals: Record<string, any>, dir: string) {
         }
     }
     const f = new Function(...Object.keys(preset), ...Object.keys(locals), `return ${code.match(/(?<=%{)(.|\n)+?(?=}%)/g)}`)
-    return f(...Object.values(preset), ...Object.values(locals))
+    return f(...Object.values(preset), ...Object.values(locals)).toString()
   } catch (e) {
     console.log(e)
     return ''
@@ -51,35 +51,36 @@ function execute(code: string, locals: Record<string, any>, dir: string) {
 }
 
 export function render(dir: string = 'views', file: string, locals: Record<string, any>, debug?: boolean): DynamicHTML {
-  const root = '$'
   if (file.startsWith(root)) {
     dir = dir.split('/')[0]
     file = file.replace(root, '')
   }
   if (!file) file = 'index.html'
   if (!file.endsWith('.html')) file += '.html'
-  if (debug) console.log(dir, file)
+  if (debug) console.log(`LOADING! \x1b[34m${file}\x1b[0m from ${dir}`)
   let html: string = fs.readFileSync(`${dir}/${file}`, 'utf-8')
-  let component: Component = new Component(false)
-  let imports: Record<string, any> = {}
+  let component: Component = new Component()
   let document = parse(html)
   let scriptList: string[] = []
   const lib = {
     $import: (file: string) => {
       const dynamic = render(dir, file, locals, debug)
-      if (debug) console.log(dynamic)
       if (!dynamic.scriptList || !dynamic.component) return false
       const dom = parse(dynamic.html)
       const importedTemplate = dom.querySelector('template')?.innerHTML
       const slot = dom.querySelector('slot')?.toString() || ''
-      imports[file] = dynamic.component
       const root = document.querySelector('#root')
       const template = document.querySelector('template')
-      const elements = document.querySelectorAll('template ' + file.replace(/\..*/g, '').toLowerCase())
-      if (debug) console.log(`LOADING! \x1b[34m${file}\xb1[0m components -> \x1b[34m${elements.length}\x1b[0m`)
+      const elements = document.querySelectorAll('template ' + file.replace(/(\$|\..*)/g, '').toLowerCase())
+      if (debug) console.log(`LOADING! \x1b[34m${file}\x1b[0m components -> \x1b[34m${elements.length}\x1b[0m`)
       for (const element of elements) {
         if (template && importedTemplate) {
-          template.innerHTML = template.innerHTML.replace(element.toString(), importedTemplate.replace(slot.toString(), element.innerHTML))
+          let content = importedTemplate
+          const { attributes } = element
+          for (const [attribute, value] of Object.entries(attributes)) {
+            content = importedTemplate.replace(new RegExp(`{[ ]*${attribute}[ ]*}`, 'g'), value)
+          }
+          template.innerHTML = template.innerHTML.replace(element.toString(), content.replace(slot.toString(), element.innerHTML))
         } else if (debug) console.log('WARNING! \x1b[33mtemplate tags missing\x1b[0m')
       }
       if (root && template) html = html.replace(root.toString(), template.innerHTML)
@@ -89,9 +90,7 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
       for (const script of dynamic.scriptList) {
         s = script + s
       }
-      if (debug) console.log(s)
       html = html.replace(firstScript, s)
-      if (debug) console.log(html)
       return dynamic.component
     },
     $export: (item: any) => component = item,
@@ -101,7 +100,6 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
     try {
       const f = new Function(...Object.keys(lib), `${script.textContent}`)
       const output = f(...Object.values(lib))
-      if (debug) console.log(output)
     } catch(e) {
       console.log(e)
     }
@@ -111,18 +109,17 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
   const matches = Array.from(html.matchAll(/%{(.|\n)+?}%/g))
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i]
-    const rendered = execute(match[0], locals, dir)
+    const rendered: string = execute(match[0], locals, dir)
+    const shortened: string = rendered.length > maxLength ? rendered.substring(0, maxLength).replace('\n', '') + ` ... ${rendered.length - maxLength} more characters` : rendered.replace('\n', '')
     html = html.replace(match[0], rendered)
-    if (debug) console.log(`SUCCESS! \x1b[32m${match[0]}\x1b[0m -> ${rendered}`)
+    if (debug) console.log(`SUCCESS! \x1b[32m${match[0]}\x1b[0m -> ${shortened}`)
   }
   if (!document.querySelector('script[main]')) 
     html = html.replace(
       /%[ ]*main[ ]*%/g, 
       `<script main>
         class Component {
-          constructor(slot) {
-            this.slot = slot
-          }
+          constructor() {}
         }
         $import = file => file
         $export = file => file
@@ -149,7 +146,7 @@ export class Router {
   }
 
   listen(...args: any[]) {
-    console.log('LOADING!')
+    console.log('LOADING! webity')
     this.app.listen(...args)
   }
 
@@ -192,7 +189,7 @@ export class Router {
       this.respond(path, method, locals)
     } catch (e) {
       console.log(e)
-      console.log(`ERROR! \xb1[41m${path}\xb1[0m does not contain a \x1b[4mindex.html file\xb1[0m`)
+      console.log(`ERROR! \x1b[41m${path}\x1b[0m does not contain a \x1b[4mindex.html file\x1b[0m`)
     }
     return routes
   }

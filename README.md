@@ -26,7 +26,7 @@ const { render, Router } = require('webity')
 const express = require('express')
 ```
 
-The `Router` wrapper class creates a webity router on top of an `Express` applicaiton. The router automatically renders pages according to the route.
+The `Router` wrapper class creates a webity router on top of an `Express` applicaiton. The router automatically renders pages according to the route. You can always access `Router.app` to perform other express methods. 
 
 ```js
 const app = express()
@@ -42,9 +42,6 @@ The Webity SSR engine supports pure HTML. There is no need to use other file ext
 Variables can be rendered by the server and sent as HTML files.
 
 ```js
-const { render, Router } = require('./dist/cjs/index.cjs')
-const express = require('express')
-
 const app = express()
 const router = new Router(app)
 
@@ -79,10 +76,10 @@ Components are more advanced and are designed to work with the client. The serve
     <!-- rendered content will go in #root -->
   </div>
   <template>
-    <page>
+    <page title="One">
       Hello
     </page>
-    <page>
+    <page title="Two">
       World
     </page>
   </template>
@@ -95,11 +92,14 @@ Components are more advanced and are designed to work with the client. The serve
 </html>
 ```
 
-The `page.html` file contains the definitions for the exported component. Reactivity will be added to components in the future.
+The `page.html` file contains the definitions for the exported component. Any attribute inside `{}` curly brackets will be replaced with its value. More advanced rendering will be available later. Reactivity will also be added to components in the future.
 
 ```html
 <!-- page.html -->
 <template>
+  <h1>
+    { title } <!-- replaced with title attribute of component -->
+  </h1>
   <slot>
     <!-- slots will be replaced with the innerHTML of a <page></page> element -->
   </slot>
