@@ -77,8 +77,27 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
         if (template && importedTemplate) {
           let content = importedTemplate
           const { attributes } = element
-          for (const [attribute, value] of Object.entries(attributes)) {
-            content = importedTemplate.replace(new RegExp(`{[ ]*${attribute}[ ]*}`, 'g'), value)
+          const repeaters = dom.querySelectorAll('*[web-for]')
+          for (const repeater of repeaters) {
+            const statement = repeater.getAttribute('web-for')
+            if (statement) {
+              const split = statement?.split('in')
+              const iteratorName = split[0].split(',')[0].trim()
+              const indexName = split[0].split(',')[1].trim()
+              const iterableName = split[1].trim()
+              const iterable: any[] = (new Function(`return ${attributes[iterableName]}`))()
+              let s: string = ''
+              for (let i = 0; i < iterable.length; i++) {
+                const iterator = iterable[i]
+                for (const code of Array.from(repeater.toString().matchAll(/{{(.|\n)+?}}/g))) {
+                  const x = code[0].match(/(?<={{)(.|\n)+?(?=}})/g)
+                  const f = new Function(...Object.keys(attributes), iteratorName, indexName, iterableName, `return ${x}`)
+                  // content = importedTemplate.replace(repeater.toString(), repeater.toString().replace(code[0], f(...Object.values(attributes), iterator, i, iterable)))
+                  s += repeater.toString().replace(code[0], f(...Object.values(attributes), iterator, i, iterable))
+                }
+              }
+              content = importedTemplate.replace(repeater.toString(), s)
+            }
           }
           template.innerHTML = template.innerHTML.replace(element.toString(), content.replace(slot.toString(), element.innerHTML))
         } else if (debug) console.log('WARNING! \x1b[33mtemplate tags missing\x1b[0m')

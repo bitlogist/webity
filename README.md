@@ -33,6 +33,21 @@ const app = express()
 const router = new Router(app)
 ```
 
+## Structure
+
+Always place an `index.html` file in your folders. **Never** place an HTML file in your *static* express folder. This is an example that follows the recommended folder structure.
+
+- public/
+  - style.css
+  - script.js
+- views/
+  - about/
+    - index.html
+  - index.html
+  - page.html
+  - meta.html
+- index.js
+
 ## Overview
 
 The Webity SSR engine supports pure HTML. There is no need to use other file extensions or syntax highlighters!
@@ -40,6 +55,8 @@ The Webity SSR engine supports pure HTML. There is no need to use other file ext
 ### Server Variables
 
 Variables can be rendered by the server and sent as HTML files.
+
+There are two options. The `Router` class or the `render` function. 
 
 ```js
 const app = express()
@@ -52,8 +69,33 @@ router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] })
 router.listen(3000)
 ```
 
-Anything inside `%{}%` brackets is rendered by the server.
+The render function gives you more control but is more manual.
+
+```js
+const app = express()
+
+app.use(express.static('public'))
+
+app.get('/', (req, res) => {
+  res.send(render('views', 'index.html', { message: 'Hello!', todo: ['First', 'Second'] }))
+})
+
+// every route needs to be configured manually
+
+app.listen(3000)
+```
+
+The `$` symbol indicates that the `file` parameter of the `include(file)` function is an absolute path. Anything inside `%{}%` brackets is rendered by the server.
 > **Warning** Using regular expressions or single-line `//` comments  is not recommended
+
+```html
+<!-- returns 'Hello!' -->
+%{ message }%
+<!-- renders main.html from absolute path -->
+%{ include('$main.html') }%
+<!-- renders main.html from relative path -->
+%{ include('main.html') }%
+```
 
 ### Components
 
@@ -69,6 +111,7 @@ Components are more advanced and are designed to work with the client. The serve
   <!-- views/meta.html is rendered -->
   %{ include('$meta.html') }%
   <title>%{ message }%</title>
+  <!-- required for webity scripts -->
   %main%
 </head>
 <body>
@@ -76,10 +119,10 @@ Components are more advanced and are designed to work with the client. The serve
     <!-- rendered content will go in #root -->
   </div>
   <template>
-    <page title="One">
+    <page list="['A', 'B']">
       Hello
     </page>
-    <page title="Two">
+    <page list="['C', 'D']">
       World
     </page>
   </template>
@@ -97,22 +140,23 @@ The `page.html` file contains the definitions for the exported component. Any at
 ```html
 <!-- page.html -->
 <template>
-  <h1>
-    { title } <!-- replaced with title attribute of component -->
-  </h1>
   <slot>
     <!-- slots will be replaced with the innerHTML of a <page></page> element -->
   </slot>
-  <!-- SSR renders <li></li> elements -->
   <ul>
-    %{ loop(todo, item => element('li', item, {})) }%
+    %{ loop(todo, item => element('li', item, {})) }% <!-- SSR renders <li></li> elements -->
+  </ul>
+  <ul>
+    <li web-for="item, i in list">
+      {{ item }}
+    </li>
   </ul>
 </template>
 <!-- webity scripts are rendered -->
 <script webity>
   class Page extends Component {
     constructor() {
-      super(true)
+      super()
     }
 
     sayHello() {
