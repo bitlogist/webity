@@ -16,12 +16,14 @@ type DynamicHTML = {
 
 const root = '$'
 const maxLength = 32
-const prefix = 'web-'
-const prefixed = {
-  for: prefix + 'for',
-}
 const componentPreset = {
-  element: (tag: string, text: string, attributes: Record<string, string>) => `<${tag} ${Object.entries(attributes).join(' ').replace(',', '="') + (Object.entries(attributes).length ? '"' : '')}>${text}</${tag}>`,
+  element: (tag: string, innerHTML: string, attributes: Record<string, string>) => {
+    let s = ''
+    for (const [key, value] of Object.entries(attributes)) {
+      s += ` ${key}="${value}"`
+    }
+    return `<${tag + s}>${innerHTML}</${tag}>`
+  },
   loop: (items: string[], callback: (item: string, i: number) => any) => {
     let x: any = []
     for (let i = 0; i < items.length; i++) {
@@ -47,7 +49,13 @@ function execute(code: string, locals: Record<string, any>, dir: string): string
       eval: null,
       Function: null,
       include: (file: string) => render(dir, file, locals).html,
-      element: (tag: string, text: string, attributes: Record<string, string>) => `<${tag} ${Object.entries(attributes).join(' ').replace(',', '="') + (Object.entries(attributes).length ? '"' : '')}>${text}</${tag}>`,
+      element: (tag: string, innerHTML: string, attributes: Record<string, string>) => {
+        let s = ''
+        for (const [key, value] of Object.entries(attributes)) {
+          s += ` ${key}="${value}"`
+        }
+        return `<${tag + s}>${innerHTML}</${tag}>`
+      },
       loop: (items: string[], callback: (item: string, i: number) => any) => {
         let x: any = []
         for (let i = 0; i < items.length; i++) {
@@ -109,6 +117,17 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
               rendered = ''
             }
             content = content.replace(match[0], rendered)
+          }
+          for (const match of dom.querySelectorAll('script[inline]')) {
+            const f = new Function(...Object.keys(componentPreset), ...Object.keys(attributes), `return ${match.innerHTML}`)
+            let rendered: any
+            try {
+              rendered = f(...Object.values(componentPreset), ...Object.values(attributes))
+            } catch (e) {
+              console.log(e)
+              rendered = ''
+            }
+            content = content.replace(match.toString(), rendered)
           }
           template.innerHTML = template.innerHTML.replace(element.toString(), content.replace(slot.toString(), element.innerHTML))
         } else if (debug) console.log('WARNING! \x1b[33mtemplate tags missing\x1b[0m')

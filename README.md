@@ -119,10 +119,10 @@ Components are more advanced and are designed to work with the client. The serve
     <!-- rendered content will go in #root -->
   </div>
   <template>
-    <page list="['A', 'B']">
+    <page list="[['A', 'B'], ['C', 'D']]">
       Hello
     </page>
-    <page list="['C', 'D']">
+    <page list="[['X'], ['Y']]">
       World
     </page>
   </template>
@@ -135,7 +135,7 @@ Components are more advanced and are designed to work with the client. The serve
 </html>
 ```
 
-The `page.html` file contains the definitions for the exported component. Any attribute inside `{}` curly brackets will be replaced with its value. More advanced rendering will be available later. Reactivity will also be added to components in the future.
+The `page.html` file contains the definitions for the exported component. Any attribute inside double curly brackets `{{}}` will be replaced with its value. More advanced rendering will be available later. Reactivity will also be added to components in the future.
 
 ```html
 <!-- page.html -->
@@ -144,10 +144,16 @@ The `page.html` file contains the definitions for the exported component. Any at
     <!-- slots will be replaced with the innerHTML of a <page></page> element -->
   </slot>
   <ul>
-    %{ loop(todo, item => element('li', item, {})) }% <!-- SSR renders <li></li> elements -->
+    <!-- app SSR renders <li></li> elements -->
+    %{ loop(todo, item => element('li', item, {})) }%
   </ul>
   <ul>
-    {{ loop(list, row => element('ul', loop(row, cell => element('li', cell, {})), {})) }}
+    <!-- component SSR renders nested elements with classes -->
+    {{ loop(list, row => element('ul', loop(row, cell => element('li', cell, { class: 'webity' })), {})) }}
+  </ul>
+  <ul>
+    <!-- same thing but with better syntax highlighting -->
+    <script inline>loop(list, row => element('ul', loop(row, cell => element('li', cell, { class: 'webity' })), {}))</script>
   </ul>
 </template>
 <!-- webity scripts are rendered -->
@@ -172,24 +178,4 @@ The `include(file)` function can render other pages in a file.
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-```
-
-## Advanced
-
-### Nested Component Loops
-
-The `loop` and `element` functions make it easier to process nested loops. 
-
-```html
-<template>
-  <slot></slot>
-  <ul>
-    %{ loop(todo, item => element('li', item, {})) }%
-  </ul>
-  <ul>
-    <li web-for="row, y in list">
-      {{ loop(row, cell => element('li', cell, {})) }}
-    </li>
-  </ul>
-</template>
 ```
