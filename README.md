@@ -147,9 +147,7 @@ The `page.html` file contains the definitions for the exported component. Any at
     %{ loop(todo, item => element('li', item, {})) }% <!-- SSR renders <li></li> elements -->
   </ul>
   <ul>
-    <li web-for="item, i in list">
-      {{ item }}
-    </li>
+    {{ loop(list, row => element('ul', loop(row, cell => element('li', cell, {})), {})) }}
   </ul>
 </template>
 <!-- webity scripts are rendered -->
@@ -174,4 +172,24 @@ The `include(file)` function can render other pages in a file.
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
+## Advanced
+
+### Nested Component Loops
+
+The `loop` and `element` functions make it easier to process nested loops. 
+
+```html
+<template>
+  <slot></slot>
+  <ul>
+    %{ loop(todo, item => element('li', item, {})) }%
+  </ul>
+  <ul>
+    <li web-for="row, y in list">
+      {{ loop(row, cell => element('li', cell, {})) }}
+    </li>
+  </ul>
+</template>
 ```

@@ -16,6 +16,21 @@ type DynamicHTML = {
 
 const root = '$'
 const maxLength = 32
+const prefix = 'web-'
+const prefixed = {
+  for: prefix + 'for',
+}
+const componentPreset = {
+  element: (tag: string, text: string, attributes: Record<string, string>) => `<${tag} ${Object.entries(attributes).join(' ').replace(',', '="') + (Object.entries(attributes).length ? '"' : '')}>${text}</${tag}>`,
+  loop: (items: string[], callback: (item: string, i: number) => any) => {
+    let x: any = []
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      x.push(callback(item, i))
+    }
+    return x.join('')
+  },
+}
 
 function modify(script: string, html: string) {
   html = html.replace(script, script.replace(/return (.|\n)*/g, ''))
@@ -34,13 +49,13 @@ function execute(code: string, locals: Record<string, any>, dir: string): string
       include: (file: string) => render(dir, file, locals).html,
       element: (tag: string, text: string, attributes: Record<string, string>) => `<${tag} ${Object.entries(attributes).join(' ').replace(',', '="') + (Object.entries(attributes).length ? '"' : '')}>${text}</${tag}>`,
       loop: (items: string[], callback: (item: string, i: number) => any) => {
-          let x: any = []
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i]
-            x.push(callback(item, i))
-          }
-          return x.join('')
+        let x: any = []
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          x.push(callback(item, i))
         }
+        return x.join('')
+      },
     }
     const f = new Function(...Object.keys(preset), ...Object.keys(locals), `return ${code.match(/(?<=%{)(.|\n)+?(?=}%)/g)}`)
     return f(...Object.values(preset), ...Object.values(locals)).toString()
@@ -48,6 +63,10 @@ function execute(code: string, locals: Record<string, any>, dir: string): string
     console.log(e)
     return ''
   }
+}
+
+function safeEval(code: string, params: Record<string, any>) {
+  return (new Function(...Object.keys(params), `return ${code}`))(...Object.values(params))
 }
 
 export function render(dir: string = 'views', file: string, locals: Record<string, any>, debug?: boolean): DynamicHTML {
@@ -77,27 +96,19 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
         if (template && importedTemplate) {
           let content = importedTemplate
           const { attributes } = element
-          const repeaters = dom.querySelectorAll('*[web-for]')
-          for (const repeater of repeaters) {
-            const statement = repeater.getAttribute('web-for')
-            if (statement) {
-              const split = statement?.split('in')
-              const iteratorName = split[0].split(',')[0].trim()
-              const indexName = split[0].split(',')[1].trim()
-              const iterableName = split[1].trim()
-              const iterable: any[] = (new Function(`return ${attributes[iterableName]}`))()
-              let s: string = ''
-              for (let i = 0; i < iterable.length; i++) {
-                const iterator = iterable[i]
-                for (const code of Array.from(repeater.toString().matchAll(/{{(.|\n)+?}}/g))) {
-                  const x = code[0].match(/(?<={{)(.|\n)+?(?=}})/g)
-                  const f = new Function(...Object.keys(attributes), iteratorName, indexName, iterableName, `return ${x}`)
-                  // content = importedTemplate.replace(repeater.toString(), repeater.toString().replace(code[0], f(...Object.values(attributes), iterator, i, iterable)))
-                  s += repeater.toString().replace(code[0], f(...Object.values(attributes), iterator, i, iterable))
-                }
-              }
-              content = importedTemplate.replace(repeater.toString(), s)
+          for (const [attribute, value] of Object.entries(attributes)) {
+            attributes[attribute] = safeEval(value, {})
+          }
+          for (const match of Array.from(content.matchAll(/{{(.|\n)+?}}/g))) {
+            const f = new Function(...Object.keys(componentPreset), ...Object.keys(attributes), `return ${match[0].match(/(?<={{)(.|\n)+?(?=}})/g)}`)
+            let rendered: any
+            try {
+              rendered = f(...Object.values(componentPreset), ...Object.values(attributes))
+            } catch (e) {
+              console.log(e)
+              rendered = ''
             }
+            content = content.replace(match[0], rendered)
           }
           template.innerHTML = template.innerHTML.replace(element.toString(), content.replace(slot.toString(), element.innerHTML))
         } else if (debug) console.log('WARNING! \x1b[33mtemplate tags missing\x1b[0m')
