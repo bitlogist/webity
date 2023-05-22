@@ -2,7 +2,8 @@ import * as fs from 'fs'
 import { Express, Request, Response } from 'express'
 import { parse } from 'node-html-parser'
 
-type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
+export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
+export type RouteData = Record<string, any> | ((req: Request, res: Response) => Record<string, any>)
 
 class Component {
   constructor() {}
@@ -184,19 +185,22 @@ export function render(dir: string = 'views', file: string, locals: Record<strin
 export class Router {
   dir: string = 'views'
   app: Express
+  regex: RegExp = new RegExp(`${this.dir}[\\/]?`, 'g')
 
   constructor(app: Express, dir?: string) {
     this.app = app
     if (dir) this.dir = dir
   }
 
-  use(...args: any[]) {
+  use(...args: any[]): Express {
     this.app.use(...args)
+    return this.app
   }
 
-  listen(...args: any[]) {
+  listen(...args: any[]): Express {
     console.log('LOADING! webity')
     this.app.listen(...args)
+    return this.app
   }
 
   listRoutes(path: string): string[] {
@@ -216,7 +220,7 @@ export class Router {
   }
 
   respond(path: string, method: Method, locals: Record<string, any>): Express {
-    this.app[method]('/' + path.replace(new RegExp(`${this.dir}[\\/]?`, 'g'), ''), (req: Request, res: Response) => {
+    this.app[method]('/' + path.replace(this.regex, ''), (req: Request, res: Response) => {
       const { params, query } = req
       let info: Record<string, any> = {
         params,
@@ -228,7 +232,7 @@ export class Router {
     return this.app
   }
 
-  route(path: string, method: Method, locals: Record<string, any>): string[] {
+  route(path: string, method: Method, locals: Record<string, any>): Router {
     const routes = this.listRoutes(this.dir + path)
     for (const route of routes) {
       this.respond(route, method, locals)
@@ -240,6 +244,23 @@ export class Router {
       console.log(e)
       console.log(`ERROR! \x1b[41m${path}\x1b[0m does not contain a \x1b[4mindex.html file\x1b[0m`)
     }
-    return routes
+    return this
+  }
+
+  routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>): Router {
+    const routes = this.listRoutes(this.dir + path)
+    for (const route of routes) {
+      const relativeRoute = route.replace(this.regex, '')
+      const localsFetcher = routeMap[relativeRoute]
+      console.log(localsFetcher)
+      if (typeof(localsFetcher) === 'function') {
+        this.app[method]('/' + route.replace(this.regex, ''), (req: Request, res: Response) => {
+          res.send(render(route, '', localsFetcher(req, res), true).html)
+        })
+      } else {
+        this.respond(route, method, localsFetcher)
+      }
+    }
+    return this
   }
 }

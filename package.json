@@ -6,7 +6,7 @@
   },
   "name": "webity",
   "description": "Advanced Web SSR!",
-  "version": "3.0.0",
+  "version": "3.2.0",
   "main": "dist/esm/index.mjs",
   "type": "module",
   "exports": {
@@ -21,6 +21,10 @@
   "keywords": [],
   "author": "bitlogist",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitlogist/webity.git"
+  },
   "devDependencies": {
     "@types/express": "^4.17.17",
     "@types/node": "^20.1.0"

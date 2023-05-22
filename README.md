@@ -171,11 +171,22 @@ The `page.html` file contains the definitions for the exported component. Any at
 </script>
 ```
 
-The `include(file)` function can render other pages in a file.
+The `include(file: string)` function can render other pages in a file.
 
 ```html
 <!-- meta.html -->
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
+## Route Maps
+
+The `Router.routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>)` method uses different locals for each route. Functions are also possible `RouteData` parameters.
+
+```js
+router.routeWithMap('', 'get', {
+  '': { message: 'Home', todo: ['First', 'Second'] },
+  'about': { message: 'Home', todo: ['X', 'Y'] }
+})
 ```

@@ -6,6 +6,9 @@ const router = new Router(app)
 
 router.use(express.static('public'))
 
-router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] })
+router.routeWithMap('', 'get', {
+  '': { message: 'Home', todo: ['First', 'Second'] },
+  'about': { message: 'Home', todo: ['X', 'Y'] }
+})
 
 router.listen(3000)
