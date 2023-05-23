@@ -1,6 +1,10 @@
 # Webity
 
 A pretty overpowered SSR engine for express!
+- Express SSR
+- Component SSR
+- Route Maps
+- Utility HTML Functions
 
 ## Installation
 
@@ -65,6 +69,8 @@ const router = new Router(app)
 router.use(express.static('public'))
 
 router.route('', 'get', { message: 'Hello!', todo: ['First', 'Second'] })
+
+// no need to configure routing for subdirectories due to recursion
 
 router.listen(3000)
 ```
@@ -182,7 +188,7 @@ The `include(file: string)` function can render other pages in a file.
 
 ## Route Maps
 
-The `Router.routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>)` method uses different locals for each route. Functions are also possible `RouteData` parameters.
+The `Router.routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>)` method uses different locals for each route. A `RouteData` object can be an object or a function like `(req: Request, res: Response) => Record<string, any>` that returns an object dynamically.
 
 ```js
 router.routeWithMap('', 'get', {
@@ -190,3 +196,5 @@ router.routeWithMap('', 'get', {
   'about': { message: 'Home', todo: ['X', 'Y'] }
 })
 ```
+
+Different pages can have different locals. Express parameters and queries can be accessed by callback functions.

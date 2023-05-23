@@ -6,7 +6,7 @@
   },
   "name": "webity",
   "description": "Advanced Web SSR!",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "main": "dist/esm/index.mjs",
   "type": "module",
   "exports": {
@@ -18,7 +18,16 @@
     "dev": "node index.test.mjs",
     "cjs": "node index.test.cjs"
   },
-  "keywords": [],
+  "keywords": [
+    "webity",
+    "web",
+    "framework",
+    "ssr",
+    "vue",
+    "express",
+    "ejs",
+    "advanced"
+  ],
   "author": "bitlogist",
   "license": "MIT",
   "repository": {
