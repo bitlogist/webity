@@ -6,7 +6,7 @@
   },
   "name": "webity",
   "description": "Advanced Web SSR!",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "main": "dist/esm/index.mjs",
   "type": "module",
   "exports": {
