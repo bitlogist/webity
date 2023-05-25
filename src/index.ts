@@ -247,18 +247,27 @@ export class Router {
     return this
   }
 
-  routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>): Router {
+  routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>, onError: ((name: string, req: Request, res: Response) => any)): Router {
     const routes = this.listRoutes(this.dir + path)
     for (const route of routes) {
       const relativeRoute = route.replace(this.regex, '')
-      const localsFetcher = routeMap[relativeRoute]
-      console.log(localsFetcher)
-      if (typeof(localsFetcher) === 'function') {
+      const locals = routeMap[relativeRoute]
+      if (typeof(locals) === 'function') {
         this.app[method]('/' + route.replace(this.regex, ''), (req: Request, res: Response) => {
-          res.send(render(route, '', localsFetcher(req, res), true).html)
+          try {
+            res.send(render(route, '', locals(req, res)).html)
+          } catch (e) {
+            onError('malfunction', req, res)
+          }
         })
       } else {
-        this.respond(route, method, localsFetcher)
+        if (locals) {
+          this.respond(route, method, locals)
+        } else {
+          this.app[method]('/' + route.replace(this.regex, ''), (req: Request, res: Response) => {
+            onError('missing', req, res)
+          })
+        }
       }
     }
     return this

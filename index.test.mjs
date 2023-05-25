@@ -6,9 +6,11 @@ const router = new Router(app)
 
 router.use(express.static('public'))
 
+const errorHandler = (name, req, res) => res.status(404).send('Error 404')
+
 router.routeWithMap('', 'get', {
   '': { message: 'Home', todo: ['First', 'Second'] },
-  'about': { message: 'Home', todo: ['X', 'Y'] }
-})
+  'about': { message: 'About', todo: ['X', 'Y'] }
+}, errorHandler),
 
 router.listen(3000)

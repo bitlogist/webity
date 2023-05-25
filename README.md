@@ -188,13 +188,25 @@ The `include(file: string)` function can render other pages in a file.
 
 ## Route Maps
 
-The `Router.routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>)` method uses different locals for each route. A `RouteData` object can be an object or a function like `(req: Request, res: Response) => Record<string, any>` that returns an object dynamically.
+```ts
+Router.routeWithMap(path: string, method: Method, routeMap: Record<string, RouteData>, onError: ((name: string, req: Request, res: Response) => any)): Router 
+```
+
+This `Router` method allows different locals to be used for different routes. A `RouteData` type can be an object or a function like `(req: Request, res: Response) => Record<string, any>` that returns an object dynamically.
 
 ```js
+const errorHandler = (name, req, res) => res.status(404).send('Error 404')
+
 router.routeWithMap('', 'get', {
   '': { message: 'Home', todo: ['First', 'Second'] },
-  'about': { message: 'Home', todo: ['X', 'Y'] }
-})
+  'about': { message: 'About', todo: ['X', 'Y'] }
+}, errorHandler),
 ```
 
 Different pages can have different locals. Express parameters and queries can be accessed by callback functions.
+
+The `RouteData` type can be imported if necessary.
+
+```ts
+type RouteData = Record<string, any> | ((req: Request, res: Response) => Record<string, any>)
+```
