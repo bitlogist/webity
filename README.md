@@ -133,7 +133,7 @@ Components are more advanced and are designed to work with the client. The serve
     </page>
   </template>
   <script webity>
-    const Page = $import('page')
+    const Page = $import('$page.html')
     const page = new Page()
     page.sayHello()
   </script>
